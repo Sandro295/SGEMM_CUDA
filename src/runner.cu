@@ -368,11 +368,11 @@ void runSgemmWarptiling(int M, int N, int K, float alpha, float *A, float *B,
   static_assert((K10_WM % K10_WMITER == 0) and (K10_WN % K10_WNITER == 0));
 
   static_assert((K10_NUM_THREADS * 4) % K10_BK == 0,
-                "NUM_THREADS*4 must be multiple of K9_BK to avoid quantization "
+                "NUM_THREADS*4 must be multiple of K10_BK to avoid quantization "
                 "issues during GMEM->SMEM tiling (loading only parts of the "
                 "final row of Bs during each iteraion)");
   static_assert((K10_NUM_THREADS * 4) % K10_BN == 0,
-                "NUM_THREADS*4 must be multiple of K9_BN to avoid quantization "
+                "NUM_THREADS*4 must be multiple of K10_BN to avoid quantization "
                 "issues during GMEM->SMEM tiling (loading only parts of the "
                 "final row of As during each iteration)");
   static_assert(K10_BN % (16 * K10_TN) == 0,

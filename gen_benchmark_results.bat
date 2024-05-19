@@ -5,7 +5,7 @@
 
 mkdir benchmark_results
 
-for /l %%x in (0, 1, 10) do (
+for /l %%x in (10, -1, 0) do (
    echo %%x
    echo.  
    .\build\Release\sgemm.exe %%x | tee "benchmark_results/%%~x_output.txt" || goto :error
@@ -17,5 +17,5 @@ python3 plot_benchmark_results.py
 
 :error
 echo "Are you sure you have build the Release configuration?"
-echo "cmake --build . -DCMAKE_BUILD_TYPE=Release"
+echo "cmake --build . --config Release"
 exit /b 1

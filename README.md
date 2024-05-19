@@ -13,17 +13,17 @@ GFLOPs at matrix size 4096x4096:
 <!-- benchmark_results -->
 | Kernel                              |   GFLOPs/s | Performance relative to cuBLAS   |
 |:------------------------------------|-----------:|:---------------------------------|
-| 10: Warptiling                      |       50.5 | 0.4%                             |
-| 8: Avoid Bank Conflicts (Offset)    |       61.8 | 0.5%                             |
-| 6: Vectorized Mem Access            |       61.9 | 0.5%                             |
-| 7: Avoid Bank Conflicts (Linearize) |       61.9 | 0.5%                             |
-| 5: 2D Blocktiling                   |       62.1 | 0.5%                             |
-| 9: Autotuning                       |       64.6 | 0.5%                             |
-| 2: GMEM Coalescing                  |      110.3 | 0.8%                             |
-| 1: Naive                            |      111.7 | 0.8%                             |
-| 4: 1D Blocktiling                   |      137.9 | 1.0%                             |
-| 3: SMEM Caching                     |      141.3 | 1.1%                             |
-| 0: cuBLAS                           |    13222.4 | 100.0%                           |
+| 1: Naive                            |      172.8 | 1.3%                             |
+| 2: GMEM Coalescing                  |     1226.4 | 9.5%                             |
+| 3: SMEM Caching                     |     1701.4 | 13.2%                            |
+| 4: 1D Blocktiling                   |     5071.8 | 39.2%                            |
+| 9: Autotuning                       |     9575.8 | 74.0%                            |
+| 7: Avoid Bank Conflicts (Linearize) |    10027.5 | 77.5%                            |
+| 5: 2D Blocktiling                   |    10142.7 | 78.4%                            |
+| 8: Avoid Bank Conflicts (Offset)    |    10323.8 | 79.8%                            |
+| 6: Vectorized Mem Access            |    11558.7 | 89.3%                            |
+| 10: Warptiling                      |    12550.6 | 97.0%                            |
+| 0: cuBLAS                           |    12936.8 | 100.0%                           |
 <!-- benchmark_results -->
 
 ## Setup

@@ -2,6 +2,8 @@ build/
 cmake-build-debug/
 cmake-build-release/
 .idea/
+# hack for windows build
+sys_time_h/
 
 # VSCode, but include settings.json
 .vscode/*
