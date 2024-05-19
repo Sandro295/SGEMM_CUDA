@@ -87,15 +87,15 @@ if ! (( (BN * BK) % (4 * NUM_THREADS) == 0 )); then
 fi
 
 # Update the parameters in the source code
-sed -i "s/const uint K11_NUM_THREADS = .*/const uint K11_NUM_THREADS = $NUM_THREADS;/" $RUNNER
-sed -i "s/const uint K11_BN = .*/const uint K11_BN = $BN;/" $RUNNER
-sed -i "s/const uint K11_BM = .*/const uint K11_BM = $BM;/" $RUNNER
-sed -i "s/const uint K11_BK = .*/const uint K11_BK = $BK;/" $RUNNER
-sed -i "s/const uint K11_WM = .*/const uint K11_WM = $WM;/" $RUNNER
-sed -i "s/const uint K11_WN = .*/const uint K11_WN = $WN;/" $RUNNER
-sed -i "s/const uint K11_WNITER = .*/const uint K11_WNITER = $WN_ITER;/" $RUNNER
-sed -i "s/const uint K11_TM = .*/const uint K11_TM = $TM;/" $RUNNER
-sed -i "s/const uint K11_TN = .*/const uint K11_TN = $TN;/" $RUNNER
+sed -i "s/const unsigned int K11_NUM_THREADS = .*/const unsigned int K11_NUM_THREADS = $NUM_THREADS;/" $RUNNER
+sed -i "s/const unsigned int K11_BN = .*/const unsigned int K11_BN = $BN;/" $RUNNER
+sed -i "s/const unsigned int K11_BM = .*/const unsigned int K11_BM = $BM;/" $RUNNER
+sed -i "s/const unsigned int K11_BK = .*/const unsigned int K11_BK = $BK;/" $RUNNER
+sed -i "s/const unsigned int K11_WM = .*/const unsigned int K11_WM = $WM;/" $RUNNER
+sed -i "s/const unsigned int K11_WN = .*/const unsigned int K11_WN = $WN;/" $RUNNER
+sed -i "s/const unsigned int K11_WNITER = .*/const unsigned int K11_WNITER = $WN_ITER;/" $RUNNER
+sed -i "s/const unsigned int K11_TM = .*/const unsigned int K11_TM = $TM;/" $RUNNER
+sed -i "s/const unsigned int K11_TN = .*/const unsigned int K11_TN = $TN;/" $RUNNER
 
 # Rebuild the program
 make

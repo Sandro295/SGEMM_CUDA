@@ -64,11 +64,11 @@ for bk in ${BK_VALUES[@]}; do
             fi
 
             # Update the parameters in the source code
-            sed -i "s/const uint K9_BK = .*/const uint K9_BK = $bk;/" $RUNNER
-            sed -i "s/const uint K9_TM = .*/const uint K9_TM = $tm;/" $RUNNER
-            sed -i "s/const uint K9_TN = .*/const uint K9_TN = $tn;/" $RUNNER
-            sed -i "s/const uint K9_BM = .*/const uint K9_BM = $bm;/" $RUNNER
-            sed -i "s/const uint K9_BN = .*/const uint K9_BN = $bn;/" $RUNNER
+            sed -i "s/const unsigned int K9_BK = .*/const unsigned int K9_BK = $bk;/" $RUNNER
+            sed -i "s/const unsigned int K9_TM = .*/const unsigned int K9_TM = $tm;/" $RUNNER
+            sed -i "s/const unsigned int K9_TN = .*/const unsigned int K9_TN = $tn;/" $RUNNER
+            sed -i "s/const unsigned int K9_BM = .*/const unsigned int K9_BM = $bm;/" $RUNNER
+            sed -i "s/const unsigned int K9_BN = .*/const unsigned int K9_BN = $bn;/" $RUNNER
             sed -i "s/const int K9_NUM_THREADS = .*/const int K9_NUM_THREADS = $nt;/" $KERNEL
             
             # Rebuild the program

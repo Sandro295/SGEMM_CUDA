@@ -14,8 +14,8 @@ template <const int BM, const int BN, const int BK, const int TM, const int TN>
 __global__ void __launch_bounds__(K9_NUM_THREADS)
     sgemmAutotuned(int M, int N, int K, float alpha, float *A, float *B,
                    float beta, float *C) {
-  const uint cRow = blockIdx.y;
-  const uint cCol = blockIdx.x;
+  const unsigned int cRow = blockIdx.y;
+  const unsigned int cCol = blockIdx.x;
 
   // size of warptile
   constexpr int WM = TM * 16;
@@ -39,12 +39,12 @@ __global__ void __launch_bounds__(K9_NUM_THREADS)
 
   // calculating the indices that this thread will load into SMEM
   // we'll load 128bit / 32bit = 4 elements per thread at each step
-  const uint innerRowA = threadIdx.x / (BK / 4);
-  const uint innerColA = threadIdx.x % (BK / 4);
-  constexpr uint rowStrideA = (K9_NUM_THREADS * 4) / BK;
-  const uint innerRowB = threadIdx.x / (BN / 4);
-  const uint innerColB = threadIdx.x % (BN / 4);
-  constexpr uint rowStrideB = K9_NUM_THREADS / (BN / 4);
+  const unsigned int innerRowA = threadIdx.x / (BK / 4);
+  const unsigned int innerColA = threadIdx.x % (BK / 4);
+  constexpr unsigned int rowStrideA = (K9_NUM_THREADS * 4) / BK;
+  const unsigned int innerRowB = threadIdx.x / (BN / 4);
+  const unsigned int innerColB = threadIdx.x % (BN / 4);
+  constexpr unsigned int rowStrideB = K9_NUM_THREADS / (BN / 4);
 
   // allocate thread-local cache for results in registerfile
   float threadResults[WMITER * WNITER * TM * TN] = {0.0};
@@ -52,9 +52,9 @@ __global__ void __launch_bounds__(K9_NUM_THREADS)
   float regN[TN] = {0.0};
 
   // outer-most loop over block tiles
-  for (uint bkIdx = 0; bkIdx < K; bkIdx += BK) {
+  for (unsigned int bkIdx = 0; bkIdx < K; bkIdx += BK) {
     // populate the SMEM caches
-    for (uint offset = 0; offset + rowStrideA <= BM; offset += rowStrideA) {
+    for (unsigned int offset = 0; offset + rowStrideA <= BM; offset += rowStrideA) {
       float4 tmp = reinterpret_cast<float4 *>(
           &A[(innerRowA + offset) * K + innerColA * 4])[0];
       // transpose A while storing it
@@ -64,7 +64,7 @@ __global__ void __launch_bounds__(K9_NUM_THREADS)
       As[(innerColA * 4 + 3) * BM + innerRowA + offset] = tmp.w;
     }
 
-    for (uint offset = 0; offset + rowStrideB <= BK; offset += rowStrideB) {
+    for (unsigned int offset = 0; offset + rowStrideB <= BK; offset += rowStrideB) {
       reinterpret_cast<float4 *>(
           &Bs[(innerRowB + offset) * BN + innerColB * 4])[0] =
           reinterpret_cast<float4 *>(
@@ -72,19 +72,19 @@ __global__ void __launch_bounds__(K9_NUM_THREADS)
     }
     __syncthreads();
 
-    for (uint wmIdx = 0; wmIdx < WMITER; ++wmIdx) {
-      for (uint wnIdx = 0; wnIdx < WNITER; ++wnIdx) {
+    for (unsigned int wmIdx = 0; wmIdx < WMITER; ++wmIdx) {
+      for (unsigned int wnIdx = 0; wnIdx < WNITER; ++wnIdx) {
         // calculate per-thread results
-        for (uint dotIdx = 0; dotIdx < BK; ++dotIdx) {
+        for (unsigned int dotIdx = 0; dotIdx < BK; ++dotIdx) {
           // block into registers
-          for (uint i = 0; i < TM; ++i) {
+          for (unsigned int i = 0; i < TM; ++i) {
             regM[i] = As[dotIdx * BM + (wmIdx * WM) + threadRow * TM + i];
           }
-          for (uint i = 0; i < TN; ++i) {
+          for (unsigned int i = 0; i < TN; ++i) {
             regN[i] = Bs[dotIdx * BN + (wnIdx * WN) + threadCol * TN + i];
           }
-          for (uint resIdxM = 0; resIdxM < TM; ++resIdxM) {
-            for (uint resIdxN = 0; resIdxN < TN; ++resIdxN) {
+          for (unsigned int resIdxM = 0; resIdxM < TM; ++resIdxM) {
+            for (unsigned int resIdxN = 0; resIdxN < TN; ++resIdxN) {
               threadResults[(wmIdx * TM + resIdxM) * (WNITER * TN) +
                             wnIdx * TN + resIdxN] +=
                   regM[resIdxM] * regN[resIdxN];
@@ -100,11 +100,11 @@ __global__ void __launch_bounds__(K9_NUM_THREADS)
   }
 
   // write out the results
-  for (uint wmIdx = 0; wmIdx < WMITER; ++wmIdx) {
-    for (uint wnIdx = 0; wnIdx < WNITER; ++wnIdx) {
+  for (unsigned int wmIdx = 0; wmIdx < WMITER; ++wmIdx) {
+    for (unsigned int wnIdx = 0; wnIdx < WNITER; ++wnIdx) {
       float *C_interim = C + (wmIdx * WM * N) + (wnIdx * WN);
-      for (uint resIdxM = 0; resIdxM < TM; resIdxM += 1) {
-        for (uint resIdxN = 0; resIdxN < TN; resIdxN += 4) {
+      for (unsigned int resIdxM = 0; resIdxM < TM; resIdxM += 1) {
+        for (unsigned int resIdxN = 0; resIdxN < TN; resIdxN += 4) {
           // load C vector into registers
           float4 tmp = reinterpret_cast<float4 *>(
               &C_interim[(threadRow * TM + resIdxM) * N + threadCol * TN +

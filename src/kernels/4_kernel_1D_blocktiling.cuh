@@ -19,8 +19,8 @@ __global__ void sgemm1DBlocktiling(int M, int N, int K, float alpha,
   // The slower configuration would share columns of A, but access into B would
   // be non-sequential. So the faster configuration has better spatial locality
   // and hence a greater L2 hit rate.
-  const uint cRow = blockIdx.y;
-  const uint cCol = blockIdx.x;
+  const unsigned int cRow = blockIdx.y;
+  const unsigned int cCol = blockIdx.x;
 
   // each warp will calculate 32*TM elements, with 32 being the columnar dim.
   const int threadCol = threadIdx.x % BN;
@@ -39,16 +39,16 @@ __global__ void sgemm1DBlocktiling(int M, int N, int K, float alpha,
   // better exploit the cache sizes
   assert(BM * BK == blockDim.x);
   assert(BN * BK == blockDim.x);
-  const uint innerColA = threadIdx.x % BK; // warp-level GMEM coalescing
-  const uint innerRowA = threadIdx.x / BK;
-  const uint innerColB = threadIdx.x % BN; // warp-level GMEM coalescing
-  const uint innerRowB = threadIdx.x / BN;
+  const unsigned int innerColA = threadIdx.x % BK; // warp-level GMEM coalescing
+  const unsigned int innerRowA = threadIdx.x / BK;
+  const unsigned int innerColB = threadIdx.x % BN; // warp-level GMEM coalescing
+  const unsigned int innerRowB = threadIdx.x / BN;
 
   // allocate thread-local cache for results in registerfile
   float threadResults[TM] = {0.0};
 
   // outer loop over block tiles
-  for (uint bkIdx = 0; bkIdx < K; bkIdx += BK) {
+  for (unsigned int bkIdx = 0; bkIdx < K; bkIdx += BK) {
     // populate the SMEM caches
     As[innerRowA * BK + innerColA] = A[innerRowA * K + innerColA];
     Bs[innerRowB * BN + innerColB] = B[innerRowB * N + innerColB];
@@ -59,11 +59,11 @@ __global__ void sgemm1DBlocktiling(int M, int N, int K, float alpha,
     B += BK * N;
 
     // calculate per-thread results
-    for (uint dotIdx = 0; dotIdx < BK; ++dotIdx) {
+    for (unsigned int dotIdx = 0; dotIdx < BK; ++dotIdx) {
       // we make the dotproduct loop the outside loop, which facilitates
       // reuse of the Bs entry, which we can cache in a tmp var.
       float tmpB = Bs[dotIdx * BN + threadCol];
-      for (uint resIdx = 0; resIdx < TM; ++resIdx) {
+      for (unsigned int resIdx = 0; resIdx < TM; ++resIdx) {
         threadResults[resIdx] +=
             As[(threadRow * TM + resIdx) * BK + dotIdx] * tmpB;
       }
@@ -72,7 +72,7 @@ __global__ void sgemm1DBlocktiling(int M, int N, int K, float alpha,
   }
 
   // write out the results
-  for (uint resIdx = 0; resIdx < TM; ++resIdx) {
+  for (unsigned int resIdx = 0; resIdx < TM; ++resIdx) {
     C[(threadRow * TM + resIdx) * N + threadCol] =
         alpha * threadResults[resIdx] +
         beta * C[(threadRow * TM + resIdx) * N + threadCol];

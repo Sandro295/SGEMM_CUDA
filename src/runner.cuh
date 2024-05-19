@@ -4,9 +4,12 @@
 #include <fstream>
 #include <stdio.h>
 #include <stdlib.h>
+
 #include <sys/time.h>
+
 #include <time.h>
-#include <unistd.h>
+#include <stdint.h>
+//#include <unistd.h>
 
 void cudaCheck(cudaError_t error, const char *file,
                int line); // CUDA error check

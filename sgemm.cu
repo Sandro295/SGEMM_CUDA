@@ -5,6 +5,8 @@
 #include <iostream>
 #include <runner.cuh>
 #include <vector>
+#include <string>
+// #include <helper_cuda.h>
 
 #define cudaCheck(err) (cudaCheck(err, __FILE__, __LINE__))
 
@@ -18,7 +20,7 @@ int main(int argc, char **argv) {
   }
 
   // get kernel number
-  int kernel_num = std::stoi(argv[1]);
+  const int kernel_num = std::stoi(argv[1]);
   if (kernel_num < 0 || kernel_num > 12) {
     std::cerr << "Please enter a valid kernel number (0-12)" << std::endl;
     exit(EXIT_FAILURE);
@@ -26,6 +28,7 @@ int main(int argc, char **argv) {
 
   // get environment variable for device
   int deviceIdx = 0;
+  // const int deviceIdx = findCudaDevice(argc, (const char **)argv);
   if (getenv("DEVICE") != NULL) {
     deviceIdx = atoi(getenv("DEVICE"));
   }
@@ -89,7 +92,7 @@ int main(int argc, char **argv) {
   cudaCheck(cudaMemcpy(dC_ref, C, sizeof(float) * max_size * max_size,
                        cudaMemcpyHostToDevice));
 
-  int repeat_times = 50;
+  unsigned int repeat_times = 50;
   for (int size : SIZE) {
     m = n = k = size;
 
@@ -138,14 +141,17 @@ int main(int argc, char **argv) {
     cudaEventSynchronize(beg);
     cudaEventSynchronize(end);
     cudaEventElapsedTime(&elapsed_time, beg, end);
-    elapsed_time /= 1000.; // Convert to seconds
+    // elapsed_time /= 1000.; // Convert to seconds
 
-    long flops = 2 * m * n * k;
+    const double time_passed_s = elapsed_time / 1000;
+    const uint64_t flops = 2ull * m * n * k;
+    const double GFLOPs = (repeat_times * flops * 1e-9) / time_passed_s;
     printf(
-        "Average elapsed time: (%7.6f) s, performance: (%7.1f) GFLOPS. size: "
-        "(%ld).\n",
-        elapsed_time / repeat_times,
-        (repeat_times * flops * 1e-9) / elapsed_time, m);
+        "Average elapsed time: (%7.6f) s, performance: (%7.1f) GFLOPS. size: (%ld).\n",
+        time_passed_s / repeat_times,
+        GFLOPs,
+        m);
+
     fflush(stdout);
     // make dC and dC_ref equal again (we modified dC while calling our kernel
     // for benchmarking)

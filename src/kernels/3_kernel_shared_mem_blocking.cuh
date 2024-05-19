@@ -13,8 +13,8 @@ __global__ void sgemm_shared_mem_block(int M, int N, int K, float alpha,
                                        const float *A, const float *B,
                                        float beta, float *C) {
   // the output block that we want to compute in this threadblock
-  const uint cRow = blockIdx.x;
-  const uint cCol = blockIdx.y;
+  const unsigned int cRow = blockIdx.x;
+  const unsigned int cCol = blockIdx.y;
 
   // allocate buffer for current block in fast shared mem
   // shared mem is shared between all threads in a block
@@ -22,8 +22,8 @@ __global__ void sgemm_shared_mem_block(int M, int N, int K, float alpha,
   __shared__ float Bs[BLOCKSIZE * BLOCKSIZE];
 
   // the inner row & col that we're accessing in this thread
-  const uint threadCol = threadIdx.x % BLOCKSIZE;
-  const uint threadRow = threadIdx.x / BLOCKSIZE;
+  const unsigned int threadCol = threadIdx.x % BLOCKSIZE;
+  const unsigned int threadRow = threadIdx.x / BLOCKSIZE;
 
   // advance pointers to the starting positions
   A += cRow * BLOCKSIZE * K;                    // row=cRow, col=0

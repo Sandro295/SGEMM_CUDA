@@ -14,8 +14,8 @@ MxK * KxN = MxN
 
 __global__ void sgemm_naive(int M, int N, int K, float alpha, const float *A,
                             const float *B, float beta, float *C) {
-  const uint x = blockIdx.x * blockDim.x + threadIdx.x;
-  const uint y = blockIdx.y * blockDim.y + threadIdx.y;
+  const unsigned int x = blockIdx.x * blockDim.x + threadIdx.x;
+  const unsigned int y = blockIdx.y * blockDim.y + threadIdx.y;
 
   // if statement is necessary to make things work under tile quantization
   if (x < M && y < N) {

@@ -4,6 +4,7 @@
 #include <cstdio>
 #include <fstream>
 #include <iomanip>
+#include <ciso646> // "and" as an alternative for &&
 
 float get_sec() {
   struct timeval time;
@@ -43,18 +44,18 @@ void CudaDeviceInfo() {
     totalConstMem: %zuKB\n\
     multiProcessorCount: %d\n\
     Warp Size: %d\n",
-         deviceId, props.name, props.major, props.minor, props.memoryBusWidth,
-         props.maxThreadsPerBlock, props.maxThreadsPerMultiProcessor,
-         props.regsPerBlock, props.regsPerMultiprocessor,
-         props.totalGlobalMem / 1024 / 1024, props.sharedMemPerBlock / 1024,
-         props.sharedMemPerMultiprocessor / 1024, props.totalConstMem / 1024,
-         props.multiProcessorCount, props.warpSize);
+      deviceId, props.name, props.major, props.minor, props.memoryBusWidth,
+      props.maxThreadsPerBlock, props.maxThreadsPerMultiProcessor,
+      props.regsPerBlock, props.regsPerMultiprocessor,
+      props.totalGlobalMem / 1024 / 1024, props.sharedMemPerBlock / 1024,
+      props.sharedMemPerMultiprocessor / 1024, props.totalConstMem / 1024,
+      props.multiProcessorCount, props.warpSize);
 };
 
 void randomize_matrix(float *mat, int N) {
   // NOTICE: Use gettimeofday instead of srand((unsigned)time(NULL)); the time
   // precision is too low and the same random number is generated.
-  struct timeval time {};
+  struct timeval time {0};
   gettimeofday(&time, nullptr);
   srand(time.tv_usec);
   for (int i = 0; i < N; i++) {
@@ -78,10 +79,12 @@ void zero_init_matrix(float *mat, int N) {
 
 void copy_matrix(const float *src, float *dest, int N) {
   int i;
-  for (i = 0; src + i && dest + i && i < N; i++)
-    *(dest + i) = *(src + i);
-  if (i != N)
+  for (i = 0; src + i && dest + i && i < N; i++) {
+    dest[i] = src[i];
+  }
+  if (i != N) {
     printf("copy failed at %d while there are %d elements in total.\n", i, N);
+  }
 }
 
 void print_matrix(const float *A, int M, int N, std::ofstream &fs) {
@@ -103,10 +106,8 @@ void print_matrix(const float *A, int M, int N, std::ofstream &fs) {
 }
 
 bool verify_matrix(float *matRef, float *matOut, int N) {
-  double diff = 0.0;
-  int i;
-  for (i = 0; i < N; i++) {
-    diff = std::fabs(matRef[i] - matOut[i]);
+  for (int i = 0; i < N; i++) {
+    const double diff = std::abs(matRef[i] - matOut[i]);
     if (diff > 0.01) {
       printf("Divergence! Should %5.2f, Is %5.2f (Diff %5.2f) at %d\n",
              matRef[i], matOut[i], diff, i);
@@ -180,10 +181,10 @@ void run_sgemm_shared_mem_block(int M, int N, int K, float alpha, float *A,
 
 void runSgemm1DBlocktiling(int M, int N, int K, float alpha, float *A, float *B,
                            float beta, float *C) {
-  const uint BM = 64;
-  const uint BN = 64;
-  const uint BK = 8;
-  const uint TM = 8;
+  constexpr unsigned int BM = 64;
+  constexpr unsigned int BN = 64;
+  constexpr unsigned int BK = 8;
+  constexpr unsigned int TM = 8;
   dim3 gridDim(CEIL_DIV(N, BN), CEIL_DIV(M, BM));
   dim3 blockDim((BM * BN) / TM);
   sgemm1DBlocktiling<BM, BN, BK, TM>
@@ -192,12 +193,12 @@ void runSgemm1DBlocktiling(int M, int N, int K, float alpha, float *A, float *B,
 
 void runSgemm2DBlocktiling(int M, int N, int K, float alpha, float *A, float *B,
                            float beta, float *C) {
-  const uint BK = 8;
-  const uint TM = 8;
-  const uint TN = 8;
+  constexpr unsigned int BK = 8;
+  constexpr unsigned int TM = 8;
+  constexpr unsigned int TN = 8;
   if (M >= 128 and N >= 128) {
-    const uint BM = 128;
-    const uint BN = 128;
+    constexpr unsigned int BM = 128;
+    constexpr unsigned int BN = 128;
     dim3 gridDim(CEIL_DIV(N, BN), CEIL_DIV(M, BM));
     dim3 blockDim((BM * BN) / (TM * TN));
     sgemm2DBlocktiling<BM, BN, BK, TM, TN>
@@ -205,8 +206,8 @@ void runSgemm2DBlocktiling(int M, int N, int K, float alpha, float *A, float *B,
   } else {
     // this is a hacky solution to the underlying problem
     // of not having proper bounds checking in the kernel
-    const uint BM = 64;
-    const uint BN = 64;
+    constexpr unsigned int BM = 64;
+    constexpr unsigned int BN = 64;
     dim3 gridDim(CEIL_DIV(N, BN), CEIL_DIV(M, BM));
     dim3 blockDim((BM * BN) / (TM * TN));
     sgemm2DBlocktiling<BM, BN, BK, TM, TN>
@@ -216,12 +217,12 @@ void runSgemm2DBlocktiling(int M, int N, int K, float alpha, float *A, float *B,
 
 void runSgemmVectorize(int M, int N, int K, float alpha, float *A, float *B,
                        float beta, float *C) {
-  const uint BK = 8;
-  const uint TM = 8;
-  const uint TN = 8;
+  constexpr unsigned int BK = 8;
+  constexpr unsigned int TM = 8;
+  constexpr unsigned int TN = 8;
   if (M >= 128 and N >= 128) {
-    const uint BM = 128;
-    const uint BN = 128;
+    constexpr unsigned int BM = 128;
+    constexpr unsigned int BN = 128;
     dim3 gridDim(CEIL_DIV(N, BN), CEIL_DIV(M, BM));
     dim3 blockDim((BM * BN) / (TM * TN));
     sgemmVectorize<BM, BN, BK, TM, TN>
@@ -229,8 +230,8 @@ void runSgemmVectorize(int M, int N, int K, float alpha, float *A, float *B,
   } else {
     // this is a hacky solution to the underlying problem
     // of not having proper bounds checking in the kernel
-    const uint BM = 64;
-    const uint BN = 64;
+    constexpr unsigned int BM = 64;
+    constexpr unsigned int BN = 64;
     dim3 gridDim(CEIL_DIV(N, BN), CEIL_DIV(M, BM));
     dim3 blockDim((BM * BN) / (TM * TN));
     sgemmVectorize<BM, BN, BK, TM, TN>
@@ -240,12 +241,12 @@ void runSgemmVectorize(int M, int N, int K, float alpha, float *A, float *B,
 
 void runSgemmResolveBankConflicts(int M, int N, int K, float alpha, float *A,
                                   float *B, float beta, float *C) {
-  const uint BK = 8;
-  const uint TM = 8;
-  const uint TN = 8;
+  constexpr unsigned int BK = 8;
+  constexpr unsigned int TM = 8;
+  constexpr unsigned int TN = 8;
   if (M >= 128 and N >= 128) {
-    const uint BM = 128;
-    const uint BN = 128;
+    constexpr unsigned int BM = 128;
+    constexpr unsigned int BN = 128;
     dim3 gridDim(CEIL_DIV(N, BN), CEIL_DIV(M, BM));
     dim3 blockDim((BM * BN) / (TM * TN));
     sgemmResolveBankConflicts<BM, BN, BK, TM, TN>
@@ -253,8 +254,8 @@ void runSgemmResolveBankConflicts(int M, int N, int K, float alpha, float *A,
   } else {
     // this is a hacky solution to the underlying problem
     // of not having proper bounds checking in the kernel
-    const uint BM = 64;
-    const uint BN = 64;
+    constexpr unsigned int BM = 64;
+    constexpr unsigned int BN = 64;
     dim3 gridDim(CEIL_DIV(N, BN), CEIL_DIV(M, BM));
     dim3 blockDim((BM * BN) / (TM * TN));
     sgemmResolveBankConflicts<BM, BN, BK, TM, TN>
@@ -264,12 +265,12 @@ void runSgemmResolveBankConflicts(int M, int N, int K, float alpha, float *A,
 
 void runSgemmResolveBankExtraCol(int M, int N, int K, float alpha, float *A,
                                  float *B, float beta, float *C) {
-  const uint BK = 8;
-  const uint TM = 8;
-  const uint TN = 8;
+  constexpr unsigned int BK = 8;
+  constexpr unsigned int TM = 8;
+  constexpr unsigned int TN = 8;
   if (M >= 128 and N >= 128) {
-    const uint BM = 128;
-    const uint BN = 128;
+    constexpr unsigned int BM = 128;
+    constexpr unsigned int BN = 128;
     dim3 gridDim(CEIL_DIV(N, BN), CEIL_DIV(M, BM));
     dim3 blockDim((BM * BN) / (TM * TN));
     sgemmResolveBankExtraCol<BM, BN, BK, TM, TN>
@@ -277,8 +278,8 @@ void runSgemmResolveBankExtraCol(int M, int N, int K, float alpha, float *A,
   } else {
     // this is a hacky solution to the underlying problem
     // of not having proper bounds checking in the kernel
-    const uint BM = 64;
-    const uint BN = 64;
+    constexpr unsigned int BM = 64;
+    constexpr unsigned int BN = 64;
     dim3 gridDim(CEIL_DIV(N, BN), CEIL_DIV(M, BM));
     dim3 blockDim((BM * BN) / (TM * TN));
     sgemmResolveBankExtraCol<BM, BN, BK, TM, TN>
@@ -289,17 +290,17 @@ void runSgemmResolveBankExtraCol(int M, int N, int K, float alpha, float *A,
 void runSgemmAutotuned(int M, int N, int K, float alpha, float *A, float *B,
                        float beta, float *C) {
   // A100
-  // const uint K9_BK = 16;
-  // const uint K9_TM = 4;
-  // const uint K9_TN = 4;
-  // const uint K9_BM = 64;
-  // const uint K9_BN = 64;
+  constexpr unsigned int K9_BK = 16;
+  constexpr unsigned int K9_TM = 4;
+  constexpr unsigned int K9_TN = 4;
+  constexpr unsigned int K9_BM = 64;
+  constexpr unsigned int K9_BN = 64;
   // A6000
-  const uint K9_BK = 16;
-  const uint K9_TM = 8;
-  const uint K9_TN = 8;
-  const uint K9_BM = 128;
-  const uint K9_BN = 128;
+  // constexpr unsigned int K9_BK = 16;
+  // constexpr unsigned int K9_TM = 8;
+  // constexpr unsigned int K9_TN = 8;
+  // constexpr unsigned int K9_BM = 128;
+  // constexpr unsigned int K9_BN = 128;
   dim3 blockDim(K9_NUM_THREADS);
 
   static_assert(
@@ -331,28 +332,28 @@ void runSgemmAutotuned(int M, int N, int K, float alpha, float *A, float *B,
 void runSgemmWarptiling(int M, int N, int K, float alpha, float *A, float *B,
                         float beta, float *C) {
   // Settings for A100
-  // const uint K10_NUM_THREADS = 128;
-  // const uint K10_BN = 128;
-  // const uint K10_BM = 64;
-  // const uint K10_BK = 16;
-  // const uint K10_WN = 64;
-  // const uint K10_WM = 32;
-  // const uint K10_WNITER = 1;
-  // const uint K10_TN = 4;
-  // const uint K10_TM = 4;
+  constexpr unsigned int K10_NUM_THREADS = 128;
+  constexpr unsigned int K10_BN = 128;
+  constexpr unsigned int K10_BM = 64;
+  constexpr unsigned int K10_BK = 16;
+  constexpr unsigned int K10_WN = 64;
+  constexpr unsigned int K10_WM = 32;
+  constexpr unsigned int K10_WNITER = 1;
+  constexpr unsigned int K10_TN = 4;
+  constexpr unsigned int K10_TM = 4;
   // Settings for A6000
-  const uint K10_NUM_THREADS = 128;
-  const uint K10_BN = 128;
-  const uint K10_BM = 128;
-  const uint K10_BK = 16;
-  const uint K10_WN = 64;
-  const uint K10_WM = 64;
-  const uint K10_WNITER = 4;
-  const uint K10_TN = 4;
-  const uint K10_TM = 8;
+  // constexpr unsigned int K10_NUM_THREADS = 128;
+  // constexpr unsigned int K10_BN = 128;
+  // constexpr unsigned int K10_BM = 128;
+  // constexpr unsigned int K10_BK = 16;
+  // constexpr unsigned int K10_WN = 64;
+  // constexpr unsigned int K10_WM = 64;
+  // constexpr unsigned int K10_WNITER = 4;
+  // constexpr unsigned int K10_TN = 4;
+  // constexpr unsigned int K10_TM = 8;
   dim3 blockDim(K10_NUM_THREADS);
 
-  constexpr uint NUM_WARPS = K10_NUM_THREADS / 32;
+  constexpr unsigned int NUM_WARPS = K10_NUM_THREADS / 32;
 
   // warptile in threadblocktile
   static_assert((K10_BN % K10_WN == 0) and (K10_BM % K10_WM == 0));
@@ -361,7 +362,7 @@ void runSgemmWarptiling(int M, int N, int K, float alpha, float *A, float *B,
   // threads in warpsubtile
   static_assert((K10_WM * K10_WN) % (WARPSIZE * K10_TM * K10_TN * K10_WNITER) ==
                 0);
-  constexpr uint K10_WMITER =
+  constexpr unsigned int K10_WMITER =
       (K10_WM * K10_WN) / (32 * K10_TM * K10_TN * K10_WNITER);
   // warpsubtile in warptile
   static_assert((K10_WM % K10_WMITER == 0) and (K10_WN % K10_WNITER == 0));
@@ -392,28 +393,28 @@ void runSgemmWarptiling(int M, int N, int K, float alpha, float *A, float *B,
 void runSgemmDoubleBuffering(int M, int N, int K, float alpha, float *A,
                              float *B, float beta, float *C) {
   // Settings for A100
-  // const uint K11_NUM_THREADS = 256;
-  // const uint K11_BN = 128;
-  // const uint K11_BM = 64;
-  // const uint K11_BK = 16;
-  // const uint K11_WN = 32;
-  // const uint K11_WM = 32;
-  // const uint K11_WNITER = 2;
-  // const uint K11_TN = 4;
-  // const uint K11_TM = 4;
+  constexpr unsigned int K11_NUM_THREADS = 256;
+  constexpr unsigned int K11_BN = 128;
+  constexpr unsigned int K11_BM = 64;
+  constexpr unsigned int K11_BK = 16;
+  constexpr unsigned int K11_WN = 32;
+  constexpr unsigned int K11_WM = 32;
+  constexpr unsigned int K11_WNITER = 2;
+  constexpr unsigned int K11_TN = 4;
+  constexpr unsigned int K11_TM = 4;
   // Settings for A6000
-  const uint K11_NUM_THREADS = 256;
-  const uint K11_BN = 256;
-  const uint K11_BM = 128;
-  const uint K11_BK = 16;
-  const uint K11_WN = 32;
-  const uint K11_WM = 128;
-  const uint K11_WNITER = 1;
-  const uint K11_TN = 8;
-  const uint K11_TM = 8;
+  // constexpr unsigned int K11_NUM_THREADS = 256;
+  // constexpr unsigned int K11_BN = 256;
+  // constexpr unsigned int K11_BM = 128;
+  // constexpr unsigned int K11_BK = 16;
+  // constexpr unsigned int K11_WN = 32;
+  // constexpr unsigned int K11_WM = 128;
+  // constexpr unsigned int K11_WNITER = 1;
+  // constexpr unsigned int K11_TN = 8;
+  // constexpr unsigned int K11_TM = 8;
   dim3 blockDim(K11_NUM_THREADS);
 
-  constexpr uint NUM_WARPS = K11_NUM_THREADS / 32;
+  constexpr unsigned int NUM_WARPS = K11_NUM_THREADS / 32;
 
   // warptile in threadblocktile
   static_assert((K11_BN % K11_WN == 0) and (K11_BM % K11_WM == 0));
@@ -422,7 +423,7 @@ void runSgemmDoubleBuffering(int M, int N, int K, float alpha, float *A,
   // threads in warpsubtile
   static_assert((K11_WM * K11_WN) % (WARPSIZE * K11_TM * K11_TN * K11_WNITER) ==
                 0);
-  constexpr uint K11_WMITER =
+  constexpr unsigned int K11_WMITER =
       (K11_WM * K11_WN) / (32 * K11_TM * K11_TN * K11_WNITER);
   // warpsubtile in warptile
   static_assert((K11_WM % K11_WMITER == 0) and (K11_WN % K11_WNITER == 0));
@@ -453,18 +454,18 @@ void runSgemmDoubleBuffering(int M, int N, int K, float alpha, float *A,
 void runSgemmDoubleBuffering2(int M, int N, int K, float alpha, float *A,
                               float *B, float beta, float *C) {
   // Settings for A6000
-  const uint K12_NUM_THREADS = 128;
-  const uint K12_BN = 128;
-  const uint K12_BM = 128;
-  const uint K12_BK = 16;
-  const uint K12_WN = 64;
-  const uint K12_WM = 64;
-  const uint K12_WNITER = 4;
-  const uint K12_TN = 4;
-  const uint K12_TM = 8;
+  const unsigned int K12_NUM_THREADS = 128;
+  const unsigned int K12_BN = 128;
+  const unsigned int K12_BM = 128;
+  const unsigned int K12_BK = 16;
+  const unsigned int K12_WN = 64;
+  const unsigned int K12_WM = 64;
+  const unsigned int K12_WNITER = 4;
+  const unsigned int K12_TN = 4;
+  const unsigned int K12_TM = 8;
   dim3 blockDim(K12_NUM_THREADS);
 
-  constexpr uint NUM_WARPS = K12_NUM_THREADS / 32;
+  constexpr unsigned int NUM_WARPS = K12_NUM_THREADS / 32;
 
   // warptile in threadblocktile
   static_assert((K12_BN % K12_WN == 0) and (K12_BM % K12_WM == 0));
@@ -473,7 +474,7 @@ void runSgemmDoubleBuffering2(int M, int N, int K, float alpha, float *A,
   // threads in warpsubtile
   static_assert((K12_WM * K12_WN) % (WARPSIZE * K12_TM * K12_TN * K12_WNITER) ==
                 0);
-  constexpr uint K12_WMITER =
+  constexpr unsigned int K12_WMITER =
       (K12_WM * K12_WN) / (32 * K12_TM * K12_TN * K12_WNITER);
   // warpsubtile in warptile
   static_assert((K12_WM % K12_WMITER == 0) and (K12_WN % K12_WNITER == 0));

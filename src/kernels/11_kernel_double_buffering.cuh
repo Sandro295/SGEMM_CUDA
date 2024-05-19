@@ -17,7 +17,7 @@ __device__ void loadFromGmem(const int N, const int K, float *A, float *B,
                              float *As, float *Bs, const int innerRowA,
                              const int innerColA, const int innerRowB,
                              const int innerColB) {
-  for (uint offset = 0; offset + rowStrideA <= BM; offset += rowStrideA) {
+  for (unsigned int offset = 0; offset + rowStrideA <= BM; offset += rowStrideA) {
     float4 tmp = reinterpret_cast<float4 *>(
         &A[(innerRowA + offset) * K + innerColA * 4])[0];
     // transpose A while storing it
@@ -27,7 +27,7 @@ __device__ void loadFromGmem(const int N, const int K, float *A, float *B,
     As[(innerColA * 4 + 3) * BM + innerRowA + offset] = tmp.w;
   }
 
-  for (uint offset = 0; offset + rowStrideB <= BK; offset += rowStrideB) {
+  for (unsigned int offset = 0; offset + rowStrideB <= BK; offset += rowStrideB) {
     reinterpret_cast<float4 *>(
         &Bs[(innerRowB + offset) * BN + innerColB * 4])[0] =
         reinterpret_cast<float4 *>(
@@ -40,19 +40,19 @@ template <const int BM, const int BN, const int BK, const int WM, const int WN,
           const int TM, const int TN>
 __device__ void
 processFromSmem(float *regM, float *regN, float *threadResults, const float *As,
-                const float *Bs, const uint warpRow, const uint warpCol,
-                const uint threadRowInWarp, const uint threadColInWarp) {
-  for (uint dotIdx = 0; dotIdx < BK; ++dotIdx) {
+                const float *Bs, const unsigned int warpRow, const unsigned int warpCol,
+                const unsigned int threadRowInWarp, const unsigned int threadColInWarp) {
+  for (unsigned int dotIdx = 0; dotIdx < BK; ++dotIdx) {
     // populate registers for whole warptile
-    for (uint wSubRowIdx = 0; wSubRowIdx < WMITER; ++wSubRowIdx) {
-      for (uint i = 0; i < TM; ++i) {
+    for (unsigned int wSubRowIdx = 0; wSubRowIdx < WMITER; ++wSubRowIdx) {
+      for (unsigned int i = 0; i < TM; ++i) {
         regM[wSubRowIdx * TM + i] =
             As[(dotIdx * BM) + warpRow * WM + wSubRowIdx * WSUBM +
                threadRowInWarp * TM + i];
       }
     }
-    for (uint wSubColIdx = 0; wSubColIdx < WNITER; ++wSubColIdx) {
-      for (uint i = 0; i < TN; ++i) {
+    for (unsigned int wSubColIdx = 0; wSubColIdx < WNITER; ++wSubColIdx) {
+      for (unsigned int i = 0; i < TN; ++i) {
         regN[wSubColIdx * TN + i] =
             Bs[(dotIdx * BN) + warpCol * WN + wSubColIdx * WSUBN +
                threadColInWarp * TN + i];
@@ -60,11 +60,11 @@ processFromSmem(float *regM, float *regN, float *threadResults, const float *As,
     }
 
     // execute warptile matmul
-    for (uint wSubRowIdx = 0; wSubRowIdx < WMITER; ++wSubRowIdx) {
-      for (uint wSubColIdx = 0; wSubColIdx < WNITER; ++wSubColIdx) {
+    for (unsigned int wSubRowIdx = 0; wSubRowIdx < WMITER; ++wSubRowIdx) {
+      for (unsigned int wSubColIdx = 0; wSubColIdx < WNITER; ++wSubColIdx) {
         // calculate per-thread results
-        for (uint resIdxM = 0; resIdxM < TM; ++resIdxM) {
-          for (uint resIdxN = 0; resIdxN < TN; ++resIdxN) {
+        for (unsigned int resIdxM = 0; resIdxM < TM; ++resIdxM) {
+          for (unsigned int resIdxN = 0; resIdxN < TN; ++resIdxN) {
             threadResults[(wSubRowIdx * TM + resIdxM) * (WNITER * TN) +
                           (wSubColIdx * TN) + resIdxN] +=
                 regM[wSubRowIdx * TM + resIdxM] *
@@ -84,23 +84,23 @@ __global__ void __launch_bounds__(NUM_THREADS)
     sgemmDoubleBuffering(const int M, const int N, const int K,
                          const float alpha, float *A, float *B, float beta,
                          float *C) {
-  const uint cRow = blockIdx.y;
-  const uint cCol = blockIdx.x;
+  const unsigned int cRow = blockIdx.y;
+  const unsigned int cCol = blockIdx.x;
 
   // Placement of the warp in the threadblock tile
-  const uint warpIdx = threadIdx.x / WARPSIZE; // the warp this thread is in
-  const uint warpCol = warpIdx % (BN / WN);
-  const uint warpRow = warpIdx / (BN / WN);
+  const unsigned int warpIdx = threadIdx.x / WARPSIZE; // the warp this thread is in
+  const unsigned int warpCol = warpIdx % (BN / WN);
+  const unsigned int warpRow = warpIdx / (BN / WN);
 
   // size of the warp subtile
-  constexpr uint WMITER = (WM * WN) / (WARPSIZE * TM * TN * WNITER);
-  constexpr uint WSUBM = WM / WMITER; // 64/2=32
-  constexpr uint WSUBN = WN / WNITER; // 32/2=16
+  constexpr unsigned int WMITER = (WM * WN) / (WARPSIZE * TM * TN * WNITER);
+  constexpr unsigned int WSUBM = WM / WMITER; // 64/2=32
+  constexpr unsigned int WSUBN = WN / WNITER; // 32/2=16
 
   // Placement of the thread in the warp subtile
-  const uint threadIdxInWarp = threadIdx.x % WARPSIZE;         // [0, 31]
-  const uint threadColInWarp = threadIdxInWarp % (WSUBN / TN); // i%(16/4)
-  const uint threadRowInWarp = threadIdxInWarp / (WSUBN / TN); // i/4
+  const unsigned int threadIdxInWarp = threadIdx.x % WARPSIZE;         // [0, 31]
+  const unsigned int threadColInWarp = threadIdxInWarp % (WSUBN / TN); // i%(16/4)
+  const unsigned int threadRowInWarp = threadIdxInWarp / (WSUBN / TN); // i/4
 
   // allocate space for the current blocktile in SMEM
   __shared__ float As[2 * BM * BK];
@@ -118,12 +118,12 @@ __global__ void __launch_bounds__(NUM_THREADS)
   // calculating the indices that this thread will load into SMEM
   // for the loading, we're pretending like there's half as many threads
   // as there actually are
-  const uint innerRowA = (threadIdx.x % (NUM_THREADS / 2)) / (BK / 4);
-  const uint innerColA = (threadIdx.x % (NUM_THREADS / 2)) % (BK / 4);
-  constexpr uint rowStrideA = ((NUM_THREADS / 2) * 4) / BK;
-  const uint innerRowB = (threadIdx.x % (NUM_THREADS / 2)) / (BN / 4);
-  const uint innerColB = (threadIdx.x % (NUM_THREADS / 2)) % (BN / 4);
-  constexpr uint rowStrideB = (NUM_THREADS / 2) / (BN / 4);
+  const unsigned int innerRowA = (threadIdx.x % (NUM_THREADS / 2)) / (BK / 4);
+  const unsigned int innerColA = (threadIdx.x % (NUM_THREADS / 2)) % (BK / 4);
+  constexpr unsigned int rowStrideA = ((NUM_THREADS / 2) * 4) / BK;
+  const unsigned int innerRowB = (threadIdx.x % (NUM_THREADS / 2)) / (BN / 4);
+  const unsigned int innerColB = (threadIdx.x % (NUM_THREADS / 2)) % (BN / 4);
+  constexpr unsigned int rowStrideB = (NUM_THREADS / 2) / (BN / 4);
 
   // allocate thread-local cache for results in registerfile
   float threadResults[WMITER * TM * WNITER * TN] = {0.0};
@@ -139,7 +139,7 @@ __global__ void __launch_bounds__(NUM_THREADS)
   __syncthreads();
 
   // outer-most loop over block tiles
-  for (uint bkIdx = 0; bkIdx < K; bkIdx += 2 * BK) {
+  for (unsigned int bkIdx = 0; bkIdx < K; bkIdx += 2 * BK) {
     if (doubleBufferIdx == 0) {
       // process current (B0)
       db::processFromSmem<BM, BN, BK, WM, WN, WMITER, WNITER, WSUBM, WSUBN, TM,
@@ -192,12 +192,12 @@ __global__ void __launch_bounds__(NUM_THREADS)
   }
 
   // write out the results
-  for (uint wSubRowIdx = 0; wSubRowIdx < WMITER; ++wSubRowIdx) {
-    for (uint wSubColIdx = 0; wSubColIdx < WNITER; ++wSubColIdx) {
+  for (unsigned int wSubRowIdx = 0; wSubRowIdx < WMITER; ++wSubRowIdx) {
+    for (unsigned int wSubColIdx = 0; wSubColIdx < WNITER; ++wSubColIdx) {
       // move C pointer to current warp subtile
       float *C_interim = C + (wSubRowIdx * WSUBM) * N + wSubColIdx * WSUBN;
-      for (uint resIdxM = 0; resIdxM < TM; resIdxM += 1) {
-        for (uint resIdxN = 0; resIdxN < TN; resIdxN += 4) {
+      for (unsigned int resIdxM = 0; resIdxM < TM; resIdxM += 1) {
+        for (unsigned int resIdxN = 0; resIdxN < TN; resIdxN += 4) {
           // load C vector into registers
           float4 tmp = reinterpret_cast<float4 *>(
               &C_interim[(threadRowInWarp * TM + resIdxM) * N +

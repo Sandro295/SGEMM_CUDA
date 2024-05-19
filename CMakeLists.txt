@@ -34,3 +34,26 @@ target_link_libraries(cuBLAS_sgemm ${CUDA_LIBRARIES} ${CUDA_CUBLAS_LIBRARIES})
 add_executable(simplest_kernel simplest_kernel.cu)
 set_target_properties(sgemm PROPERTIES CUDA_ARCHITECTURES ${CUDA_COMPUTE_CAPABILITY})
 target_link_libraries(simplest_kernel ${CUDA_LIBRARIES})
+
+IF (WIN32)
+    include(FetchContent)
+    find_package(Git QUIET)
+    if(GIT_FOUND AND NOT EXISTS "${PROJECT_SOURCE_DIR}/sys_time_h/")
+    #     FetchContent_Declare(winsystime
+    #         GIT_REPOSITORY https://github.com/win32ports/sys_time_h.git
+    #         GIT_TAG        128ff475e1abc2aec0450f369bf91952a9bd2a3e)
+    #     # FetchContent_Declare(winsystime URL https://raw.githubusercontent.com/win32ports/sys_time_h/master/sys/time.h)
+
+    #     FetchContent_MakeAvailable(winsystime)
+    # target_link_libraries(sgemm winsystime_SOURCE_DIR)
+    # ^ this doesn't wanna work );
+
+        execute_process(COMMAND ${GIT_EXECUTABLE} clone https://github.com/win32ports/sys_time_h.git
+            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+            RESULT_VARIABLE GIT_SUBMOD_RESULT)
+            if(NOT GIT_SUBMOD_RESULT EQUAL "0")
+                message(FATAL_ERROR "git clone https://github.com/win32ports/sys_time_h.git failed with ${GIT_SUBMOD_RESULT}, please check repo")
+            endif()
+        endif()
+        include_directories(${PROJECT_SOURCE_DIR}/sys_time_h)
+ENDIF()

@@ -13,8 +13,8 @@ template <const int BM, const int BN, const int BK, const int TM, const int TN>
 __global__ void sgemmResolveBankExtraCol(int M, int N, int K, float alpha,
                                          float *A, float *B, float beta,
                                          float *C) {
-  const uint cRow = blockIdx.y;
-  const uint cCol = blockIdx.x;
+  const unsigned int cRow = blockIdx.y;
+  const unsigned int cCol = blockIdx.x;
 
   // BN/TN are the number of threads to span a column
   const int threadCol = threadIdx.x % (BN / TN);
@@ -32,10 +32,10 @@ __global__ void sgemmResolveBankExtraCol(int M, int N, int K, float alpha,
 
   // calculating the indices that this thread will load into SMEM
   // we'll load 128bit / 32bit = 4 elements per thread at each step
-  const uint innerRowA = threadIdx.x / (BK / 4);
-  const uint innerColA = threadIdx.x % (BK / 4);
-  const uint innerRowB = threadIdx.x / (BN / 4);
-  const uint innerColB = threadIdx.x % (BN / 4);
+  const unsigned int innerRowA = threadIdx.x / (BK / 4);
+  const unsigned int innerColA = threadIdx.x % (BK / 4);
+  const unsigned int innerRowB = threadIdx.x / (BN / 4);
+  const unsigned int innerColB = threadIdx.x % (BN / 4);
 
   // allocate thread-local cache for results in registerfile
   float threadResults[TM * TN] = {0.0};
@@ -43,7 +43,7 @@ __global__ void sgemmResolveBankExtraCol(int M, int N, int K, float alpha,
   float regN[TN] = {0.0};
 
   // outer-most loop over block tiles
-  for (uint bkIdx = 0; bkIdx < K; bkIdx += BK) {
+  for (unsigned int bkIdx = 0; bkIdx < K; bkIdx += BK) {
     // populate the SMEM caches
     // transpose A while loading it
     float4 tmp =
@@ -65,16 +65,16 @@ __global__ void sgemmResolveBankExtraCol(int M, int N, int K, float alpha,
     B += BK * N; // move BK rows down
 
     // calculate per-thread results
-    for (uint dotIdx = 0; dotIdx < BK; ++dotIdx) {
+    for (unsigned int dotIdx = 0; dotIdx < BK; ++dotIdx) {
       // block into registers
-      for (uint i = 0; i < TM; ++i) {
+      for (unsigned int i = 0; i < TM; ++i) {
         regM[i] = As[dotIdx * BM + threadRow * TM + i];
       }
-      for (uint i = 0; i < TN; ++i) {
+      for (unsigned int i = 0; i < TN; ++i) {
         regN[i] = Bs[dotIdx * (BN + extraCols) + threadCol * TN + i];
       }
-      for (uint resIdxM = 0; resIdxM < TM; ++resIdxM) {
-        for (uint resIdxN = 0; resIdxN < TN; ++resIdxN) {
+      for (unsigned int resIdxM = 0; resIdxM < TM; ++resIdxM) {
+        for (unsigned int resIdxN = 0; resIdxN < TN; ++resIdxN) {
           threadResults[resIdxM * TN + resIdxN] +=
               regM[resIdxM] * regN[resIdxN];
         }
@@ -84,8 +84,8 @@ __global__ void sgemmResolveBankExtraCol(int M, int N, int K, float alpha,
   }
 
   // write out the results
-  for (uint resIdxM = 0; resIdxM < TM; resIdxM += 1) {
-    for (uint resIdxN = 0; resIdxN < TN; resIdxN += 4) {
+  for (unsigned int resIdxM = 0; resIdxM < TM; resIdxM += 1) {
+    for (unsigned int resIdxN = 0; resIdxN < TN; resIdxN += 4) {
       // load C vector into registers
       float4 tmp = reinterpret_cast<float4 *>(
           &C[(threadRow * TM + resIdxM) * N + threadCol * TN + resIdxN])[0];

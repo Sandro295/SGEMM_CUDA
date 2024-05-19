@@ -41,6 +41,7 @@ def parse_file(file):
 
     Average elapsed time: (0.005661) s, performance: (24277.4) GFLOPS. size: (4096).
     """
+    print("reading ", file)
     with open(file, "r") as f:
         lines = [line.strip() for line in f.readlines()]
 
@@ -73,8 +74,9 @@ def plot(df: pd.DataFrame):
     plt.xticks(rotation=45, ha="right", rotation_mode="anchor")
     # add small lines at the xticks
 
+    print(df)
     # display the kernel names right next to the corresponding line
-    for i, kernel in enumerate(df["kernel"].unique()):
+    for i, _ in enumerate(df["kernel"].unique()):
         # right align the text
         plt.text(
             df[df["kernel"] == i]["size"].iloc[-1],
@@ -103,10 +105,15 @@ if __name__ == "__main__":
     data = []
     for filename in results_dir.glob("*.txt"):
         # filenames have the format: <kernel_nr>_output.txt
-        if not filename.stem.split("_")[0].isdigit() and "_output" not in filename.stem:
+        if not filename.stem.split("_")[0].isdigit() or "_output" not in filename.stem:
+            print("ass", filename)
             continue
         results_dict = parse_file(filename)
+        if (len(results_dict["size"]) == 0):
+            print(f"ALERT, empty file read {filename}")
         kernel_nr = int(filename.stem.split("_")[0])
+        if kernel_nr == 0:
+            print("HMMM zero is here")
         for size, gflops in zip(results_dict["size"], results_dict["gflops"]):
             data.append({"kernel": kernel_nr, "size": size, "gflops": gflops})
     df = pd.DataFrame(data)

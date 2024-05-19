@@ -2,7 +2,7 @@
 #include <iostream>
 #include <vector>
 
-__global__ void kernel(uint *A, uint *B, int row) {
+__global__ void kernel(unsigned int *A, unsigned int *B, int row) {
   auto x = threadIdx.x / 4;
   auto y = threadIdx.x % 4;
   A[x * row + y] = x;
@@ -10,24 +10,24 @@ __global__ void kernel(uint *A, uint *B, int row) {
 }
 
 int main(int argc, char **argv) {
-  uint *Xs, *Ys;
-  uint *Xs_d, *Ys_d;
+  unsigned int *Xs, *Ys;
+  unsigned int *Xs_d, *Ys_d;
 
-  uint SIZE = 4;
+  unsigned int SIZE = 4;
 
-  Xs = (uint *)malloc(SIZE * SIZE * sizeof(uint));
-  Ys = (uint *)malloc(SIZE * SIZE * sizeof(uint));
+  Xs = (unsigned int *)malloc(SIZE * SIZE * sizeof(unsigned int));
+  Ys = (unsigned int *)malloc(SIZE * SIZE * sizeof(unsigned int));
 
-  cudaMalloc((void **)&Xs_d, SIZE * SIZE * sizeof(uint));
-  cudaMalloc((void **)&Ys_d, SIZE * SIZE * sizeof(uint));
+  cudaMalloc((void **)&Xs_d, SIZE * SIZE * sizeof(unsigned int));
+  cudaMalloc((void **)&Ys_d, SIZE * SIZE * sizeof(unsigned int));
 
   dim3 grid_size(1, 1, 1);
   dim3 block_size(4 * 4);
 
   kernel<<<grid_size, block_size>>>(Xs_d, Ys_d, 4);
 
-  cudaMemcpy(Xs, Xs_d, SIZE * SIZE * sizeof(uint), cudaMemcpyDeviceToHost);
-  cudaMemcpy(Ys, Ys_d, SIZE * SIZE * sizeof(uint), cudaMemcpyDeviceToHost);
+  cudaMemcpy(Xs, Xs_d, SIZE * SIZE * sizeof(unsigned int), cudaMemcpyDeviceToHost);
+  cudaMemcpy(Ys, Ys_d, SIZE * SIZE * sizeof(unsigned int), cudaMemcpyDeviceToHost);
 
   cudaDeviceSynchronize();
 
